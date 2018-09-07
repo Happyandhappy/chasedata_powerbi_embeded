@@ -1,16 +1,3 @@
-/node_modules
-/public/hot
-/public/storage
-/storage/*.key
-vendor/
-/.idea
-/.vagrant
-Homestead.json
-Homestead.yaml
-npm-debug.log
-.env
-*.sqlite
-*.lock
-.php_cs.cache
 /.vs
 /PowerBIEmbedded_AppOwnsData/obj
+/PowerBIEmbedded_AppOwnsData/bin
