@@ -139,6 +139,8 @@ namespace PowerBIEmbedded_AppOwnsData.Controllers
                     result.EmbedToken = tokenResponse;
                     result.EmbedUrl = report.EmbedUrl;
                     result.Id = report.Id;
+                    result.WorkSpaceId = WorkspaceId;
+                    result.ReportId = ReportId;
 
                     return View(result);
                 }
@@ -153,6 +155,128 @@ namespace PowerBIEmbedded_AppOwnsData.Controllers
             }
 
             return View(result);
+        }
+
+
+        public async Task<String> getEmbedToken(string username, string roles)
+        {
+            var WorkspaceId = this.Request.QueryString["workspaceid"];
+            var ReportId = this.Request.QueryString["reportid"];
+            var request = this.Request.QueryString.AllKeys;
+            List<String> filters = new List<String>();
+
+            for (int i = 0; i < request.Length; i++)
+            {
+                if (request[i] != "reportid" && request[i] != "workspaceid")
+                {
+                    filters.Add(this.Request.QueryString[request[i]]);
+                }
+            }
+
+            var result = new EmbedConfig();
+            try
+            {
+                result = new EmbedConfig { Username = username, Roles = roles };
+
+                result.Filters = new string[filters.Count];
+                filters.CopyTo(result.Filters);
+
+                var error = GetWebConfigErrors();
+                if (error != null)
+                {
+                    result.ErrorMessage = error;
+                    return null;
+                }
+
+                // Create a user password cradentials.
+                var credential = new UserPasswordCredential(Username, Password);
+
+                // Authenticate using created credentials
+                var authenticationContext = new AuthenticationContext(AuthorityUrl);
+                var authenticationResult = await authenticationContext.AcquireTokenAsync(ResourceUrl, ApplicationId, credential);
+
+                if (authenticationResult == null)
+                {
+                    result.ErrorMessage = "Authentication Failed.";
+                    return null;
+                }
+
+                var tokenCredentials = new TokenCredentials(authenticationResult.AccessToken, "Bearer");
+
+                // Create a Power BI Client object. It will be used to call Power BI APIs.
+                using (var client = new PowerBIClient(new Uri(ApiUrl), tokenCredentials))
+                {
+                    // Get a list of reports.
+                    var reports = await client.Reports.GetReportsInGroupAsync(WorkspaceId);
+
+                    // No reports retrieved for the given workspace.
+                    if (reports.Value.Count() == 0)
+                    {
+                        result.ErrorMessage = "No reports were found in the workspace";
+                        return null;
+                    }
+
+                    Report report;
+                    if (string.IsNullOrWhiteSpace(ReportId))
+                    {
+                        // Get the first report in the workspace.
+                        report = reports.Value.FirstOrDefault();
+                    }
+                    else
+                    {
+                        report = reports.Value.FirstOrDefault(r => r.Id == ReportId);
+                    }
+
+                    if (report == null)
+                    {
+                        result.ErrorMessage = "No report with the given ID was found in the workspace. Make sure ReportId is valid.";
+                        return null;
+                    }
+
+                    var datasets = await client.Datasets.GetDatasetByIdInGroupAsync(WorkspaceId, report.DatasetId);
+                    result.IsEffectiveIdentityRequired = datasets.IsEffectiveIdentityRequired;
+                    result.IsEffectiveIdentityRolesRequired = datasets.IsEffectiveIdentityRolesRequired;
+                    GenerateTokenRequest generateTokenRequestParameters;
+                    // This is how you create embed token with effective identities
+                    if (!string.IsNullOrWhiteSpace(username))
+                    {
+                        var rls = new EffectiveIdentity(username, new List<string> { report.DatasetId });
+                        if (!string.IsNullOrWhiteSpace(roles))
+                        {
+                            var rolesList = new List<string>();
+                            rolesList.AddRange(roles.Split(','));
+                            rls.Roles = rolesList;
+                        }
+                        // Generate Embed Token with effective identities.
+                        generateTokenRequestParameters = new GenerateTokenRequest(accessLevel: "view", identities: new List<EffectiveIdentity> { rls });
+                    }
+                    else
+                    {
+                        // Generate Embed Token for reports without effective identities.
+                        generateTokenRequestParameters = new GenerateTokenRequest(accessLevel: "view");
+                    }
+
+                    var tokenResponse = await client.Reports.GenerateTokenInGroupAsync(WorkspaceId, report.Id, generateTokenRequestParameters);
+
+                    if (tokenResponse == null)
+                    {
+                        result.ErrorMessage = "Failed to generate embed token.";
+                        return null;
+                    }
+
+                    string value ="embedUrl=" + report.EmbedUrl + "&&EmbedToken=" + tokenResponse.Token;
+                    return value;
+                }
+            }
+            catch (HttpOperationException exc)
+            {
+                result.ErrorMessage = string.Format("Status: {0} ({1})\r\nResponse: {2}\r\nRequestId: {3}", exc.Response.StatusCode, (int)exc.Response.StatusCode, exc.Response.Content, exc.Response.Headers["RequestId"].FirstOrDefault());
+            }
+            catch (Exception exc)
+            {
+                result.ErrorMessage = exc.ToString();
+            }
+            return null;
         }
 
         public async Task<ActionResult> EmbedDashboard()

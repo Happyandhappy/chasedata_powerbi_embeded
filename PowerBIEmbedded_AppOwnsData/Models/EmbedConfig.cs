@@ -33,5 +33,9 @@ namespace PowerBIEmbedded_AppOwnsData.Models
         public string ErrorMessage { get; internal set; }
 
         public string[] Filters { get; set; }
+
+        public string WorkSpaceId { get; set; }
+
+        public string ReportId { get; set; }
     }
 }

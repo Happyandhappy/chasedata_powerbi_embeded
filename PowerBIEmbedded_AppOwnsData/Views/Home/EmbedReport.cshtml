@@ -26,9 +26,10 @@
 
 
 <script>
+    //http://localhost:42734/Home/EmbedReport?workspaceid=000867a9-a5a4-4fe5-9cfa-7be3bd59a0c1&reportid=d528b44f-8746-4e35-9531-0d8426722567&filter1=DialingResults/Rep eq 'Brandon'&filter2=AgentActivity/Rep eq 'Brandon'
     // Read embed application token from Model
     var accessToken = "@Model.EmbedToken.Token";
-
+    var expire = Date.now() + 3600000;
     // Read embed URL from Model
     var embedUrl = "@Html.Raw(Model.EmbedUrl)";
 
@@ -111,4 +112,42 @@
     }
     // Embed the report and display it within the div container.
     var report = powerbi.embed(reportContainer, config);
+    //report = powerbi.get(reportContainer);
+
+    window.setInterval(function () {
+        var currentTime = Date.now();
+        var safetyInterval = 60 * 1000;
+
+        // time until token refresh in milliseconds
+        var timeout = expire - currentTime - safetyInterval;
+        if (timeout <= 0) {
+            $.ajax({
+                url: "/home/getEmbedToken?workspaceid=@Model.WorkSpaceId&reportid=@Model.ReportId",
+                method: "GET",
+                success: function (res) {
+                    console.log(res);
+                    embedUrl = res.split("&&")[0].replace("embedUrl=", "");
+                    accessToken = res.split("&&")[1].replace("EmbedToken=", "");                    
+                    expire = currentTime + 3600000;
+                    var config = {
+                        type: 'report',
+                        tokenType: models.TokenType.Embed,
+                        accessToken: accessToken,
+                        embedUrl: embedUrl,
+                        id: embedReportId,
+                        permissions: models.Permissions.All,
+                        settings: {
+                            filterPaneEnabled: false,
+                            navContentPaneEnabled: false
+                        },
+                        filters: filters
+                    };
+                    report = powerbi.embed(reportContainer, config);
+                    //report = powerbi.get(reportContainer);
+                }
+            });
+        } else {
+            report.refresh();
+        }
+    }, 60 * 1000);
 </script>
