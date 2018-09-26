@@ -211,7 +211,7 @@
     </Content>
     <Content Include="Views\Web.config" />
     <Content Include="Views\_ViewStart.cshtml" />
-    <Content Include="Views\Home\EmbedDashboard.cshtml" />
+    <Content Include="Views\Home\Convert.cshtml" />
     <Content Include="Views\Home\EmbedReport.cshtml" />
     <Content Include="Views\Home\EmbedTile.cshtml" />
     <Content Include="Views\Home\Index.cshtml" />

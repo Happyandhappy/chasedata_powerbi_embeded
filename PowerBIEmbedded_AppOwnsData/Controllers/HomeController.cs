@@ -33,14 +33,19 @@ namespace PowerBIEmbedded_AppOwnsData.Controllers
         {
             var WorkspaceId = this.Request.QueryString["workspaceid"];
             var ReportId = this.Request.QueryString["reportid"];
+            var refresh = this.Request.QueryString["refresh"];
+
             var request = this.Request.QueryString.AllKeys;
             List<String> filters = new List<String>();
 
             for (int i = 0; i < request.Length; i++)
             {
-                if (request[i] != "reportid" && request[i] != "workspaceid")
-                {
-                    filters.Add(this.Request.QueryString[request[i]]);
+                if (request[i] != "reportid" && request[i] != "workspaceid" && request[i] !="refresh")
+                {                    
+                    if (request[i].Contains("filter"))
+                    {
+                        filters.Add(this.Request.QueryString[request[i]]);
+                    }                    
                 }
             }
 
@@ -136,11 +141,12 @@ namespace PowerBIEmbedded_AppOwnsData.Controllers
                     }
 
                     // Generate Embed Configuration.
-                    result.EmbedToken = tokenResponse;
-                    result.EmbedUrl = report.EmbedUrl;
-                    result.Id = report.Id;
-                    result.WorkSpaceId = WorkspaceId;
-                    result.ReportId = ReportId;
+                    result.EmbedToken   = tokenResponse;
+                    result.EmbedUrl     = report.EmbedUrl;
+                    result.Id           = report.Id;
+                    result.WorkSpaceId  = WorkspaceId;
+                    result.ReportId     = ReportId;
+                    result.Refresh      = refresh;
 
                     return View(result);
                 }
@@ -163,13 +169,17 @@ namespace PowerBIEmbedded_AppOwnsData.Controllers
             var WorkspaceId = this.Request.QueryString["workspaceid"];
             var ReportId = this.Request.QueryString["reportid"];
             var request = this.Request.QueryString.AllKeys;
+            var refresh = this.Request.QueryString["refresh"];
             List<String> filters = new List<String>();
 
             for (int i = 0; i < request.Length; i++)
             {
-                if (request[i] != "reportid" && request[i] != "workspaceid")
+                if (request[i] != "reportid" && request[i] != "workspaceid" && request[i] != "refresh")
                 {
-                    filters.Add(this.Request.QueryString[request[i]]);
+                    if (request[i].Contains("filter"))
+                    {
+                        filters.Add(this.Request.QueryString[request[i]]);
+                    }
                 }
             }
 
@@ -279,73 +289,9 @@ namespace PowerBIEmbedded_AppOwnsData.Controllers
             return null;
         }
 
-        public async Task<ActionResult> EmbedDashboard()
+        public async Task<ActionResult> Convert()
         {
-            var error = GetWebConfigErrors();
-            if (error != null)
-            {
-                return View(new EmbedConfig()
-                {
-                    ErrorMessage = error
-                });
-            }
-
-            // Create a user password cradentials.
-            var credential = new UserPasswordCredential(Username, Password);
-
-            // Authenticate using created credentials
-            var authenticationContext = new AuthenticationContext(AuthorityUrl);
-            var authenticationResult = await authenticationContext.AcquireTokenAsync(ResourceUrl, ApplicationId, credential);
-
-            if (authenticationResult == null)
-            {
-                return View(new EmbedConfig()
-                {
-                    ErrorMessage = "Authentication Failed."
-                });
-            }
-
-            var tokenCredentials = new TokenCredentials(authenticationResult.AccessToken, "Bearer");
-
-            // Create a Power BI Client object. It will be used to call Power BI APIs.
-            using (var client = new PowerBIClient(new Uri(ApiUrl), tokenCredentials))
-            {
-                // Get a list of dashboards.
-                var dashboards = await client.Dashboards.GetDashboardsInGroupAsync(WorkspaceId);
-
-                // Get the first report in the workspace.
-                var dashboard = dashboards.Value.FirstOrDefault();
-
-                if (dashboard == null)
-                {
-                    return View(new EmbedConfig()
-                    {
-                        ErrorMessage = "Workspace has no dashboards."
-                    });
-                }
-
-                // Generate Embed Token.
-                var generateTokenRequestParameters = new GenerateTokenRequest(accessLevel: "view");
-                var tokenResponse = await client.Dashboards.GenerateTokenInGroupAsync(WorkspaceId, dashboard.Id, generateTokenRequestParameters);
-
-                if (tokenResponse == null)
-                {
-                    return View(new EmbedConfig()
-                    {
-                        ErrorMessage = "Failed to generate embed token."
-                    });
-                }
-
-                // Generate Embed Configuration.
-                var embedConfig = new EmbedConfig()
-                {
-                    EmbedToken = tokenResponse,
-                    EmbedUrl = dashboard.EmbedUrl,
-                    Id = dashboard.Id
-                };
-
-                return View(embedConfig);
-            }
+            return View();        
         }
 
         public async Task<ActionResult> EmbedTile()

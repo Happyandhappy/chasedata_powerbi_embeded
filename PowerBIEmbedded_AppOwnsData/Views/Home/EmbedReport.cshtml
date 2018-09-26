@@ -7,7 +7,7 @@
 
 <script src="https://npmcdn.com/es6-promise@3.2.1"></script>
 <script src="~/scripts/powerbi.js"></script>
-
+<script src="~/scripts/aes.js"></script>
 @if (!string.IsNullOrEmpty(Model.ErrorMessage))
 {
     <div id="errorWrapper">
@@ -38,6 +38,18 @@
 
     // Get models. models contains enums that can be used.
     var models = window['powerbi-client'].models;
+    var refresh = 1;
+    try{
+        refresh = parseInt(getValue("@Html.Raw(Model.Refresh)"));
+    } catch (error) {
+        refresh = 1;
+    }
+
+    function getValue(string) {
+        var str = string.replace("*", "+");
+        var decrypted = CryptoJS.AES.decrypt(str, "Secret Passphrase");
+        return decrypted.toString(CryptoJS.enc.Utf8);
+    }
 
     // Embed configuration used to describe the what and how to embed.
     // This object is used when calling powerbi.embed.
@@ -45,12 +57,12 @@
     // You can find more information at https://github.com/Microsoft/PowerBI-JavaScript/wiki/Embed-Configuration-Details.
     // var filter_Uris = @Model.Filters.Length;
     var filter_Uris = [];
-    
+
     @foreach (var d in @Model.Filters)
     {
         @:filter_Uris.push("@d".replace(/&#39;/g, ''));
     }
-    
+
     var filters = [];
     for (var i = 0 ; i < filter_Uris.length ; i++) {
         var table = filter_Uris[i].split("/")[0];
@@ -67,7 +79,7 @@
         };
         filters.push(filter);
     }
-    
+
     var config = {
         type: 'report',
         tokenType: models.TokenType.Embed,
@@ -127,7 +139,7 @@
                 success: function (res) {
                     console.log(res);
                     embedUrl = res.split("&&")[0].replace("embedUrl=", "");
-                    accessToken = res.split("&&")[1].replace("EmbedToken=", "");                    
+                    accessToken = res.split("&&")[1].replace("EmbedToken=", "");
                     expire = currentTime + 3600000;
                     var config = {
                         type: 'report',
@@ -149,5 +161,5 @@
         } else {
             report.refresh();
         }
-    }, 15 * 60 * 1000);
+    }, refresh * 60 * 1000);
 </script>

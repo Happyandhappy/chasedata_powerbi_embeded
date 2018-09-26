@@ -37,5 +37,7 @@ namespace PowerBIEmbedded_AppOwnsData.Models
         public string WorkSpaceId { get; set; }
 
         public string ReportId { get; set; }
+
+        public string Refresh { get; set; }
     }
 }
