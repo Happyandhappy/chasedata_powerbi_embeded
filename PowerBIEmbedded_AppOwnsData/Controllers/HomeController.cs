@@ -32,15 +32,16 @@ namespace PowerBIEmbedded_AppOwnsData.Controllers
         public async Task<ActionResult> EmbedReport(string username, string roles)
         {
             var WorkspaceId = this.Request.QueryString["workspaceid"];
-            var ReportId = this.Request.QueryString["reportid"];
-            var refresh = this.Request.QueryString["refresh"];
-
+            var ReportId = this.Request.QueryString["reportid"];            
             var request = this.Request.QueryString.AllKeys;
             List<String> filters = new List<String>();
 
+            var refresh = this.Request.QueryString["sysInterval"];
+            if (refresh == null) refresh = "U2FsdGVkX1*QD/lzEMiyER9LYvvihjvoM70PrKRaA04=";
+
             for (int i = 0; i < request.Length; i++)
             {
-                if (request[i] != "reportid" && request[i] != "workspaceid" && request[i] !="refresh")
+                if (request[i] != "reportid" && request[i] != "workspaceid" && request[i] != "sysInterval")
                 {                    
                     if (request[i].Contains("filter"))
                     {
@@ -169,12 +170,14 @@ namespace PowerBIEmbedded_AppOwnsData.Controllers
             var WorkspaceId = this.Request.QueryString["workspaceid"];
             var ReportId = this.Request.QueryString["reportid"];
             var request = this.Request.QueryString.AllKeys;
-            var refresh = this.Request.QueryString["refresh"];
+            var refresh = this.Request.QueryString["sysInterval"];
+            if (refresh == null) refresh = "U2FsdGVkX1*QD/lzEMiyER9LYvvihjvoM70PrKRaA04=";
+
             List<String> filters = new List<String>();
 
             for (int i = 0; i < request.Length; i++)
             {
-                if (request[i] != "reportid" && request[i] != "workspaceid" && request[i] != "refresh")
+                if (request[i] != "reportid" && request[i] != "workspaceid" && request[i] != "sysInterval")
                 {
                     if (request[i].Contains("filter"))
                     {

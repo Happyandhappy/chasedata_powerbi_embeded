@@ -1,3 +1,4 @@
 /.vs
 /PowerBIEmbedded_AppOwnsData/obj
 /PowerBIEmbedded_AppOwnsData/bin
+*.zip
